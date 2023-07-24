@@ -216,6 +216,7 @@ class ChainWebSocket {
       callback = this.cbs[response.id];
       this.responseCbId = response.id;
     } else {
+      if(!this.subs[response.id])
       callback = this.subs[response.id].callback;
     }
 
