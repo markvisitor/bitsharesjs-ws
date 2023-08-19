@@ -73,14 +73,6 @@ class ChainWebSocket {
     if (this.statusCb) this.statusCb("open");
     if (this.on_reconnect) this.on_reconnect();
     this.keepalive_timer = setInterval(() => {
-      this.recv_life--;
-      if (this.recv_life == 0) {
-        console.error(this.url + " connection is dead, terminating ws");
-        this.close();
-        // clearInterval(this.keepalive_timer);
-        // this.keepalive_timer = undefined;
-        return;
-      }
       this.send_life--;
       if (this.send_life == 0) {
         // this.ws.ping('', false, true);
@@ -88,6 +80,27 @@ class ChainWebSocket {
           this.keepAliveCb(this.closed);
         }
         this.send_life = MAX_SEND_LIFE;
+
+        //transaction timeout, and then remove sub
+        const now = new Date().getTime();
+        Object.values(this.subs).forEach( sub => {
+          if(sub && ['broadcast_transaction_with_callback'].includes(sub.method) 
+            && (now - sub.timestamp) >  1 * 60 * 1000){
+              console.log(`Warning: subs[${sub.id}] transaction timeout`);
+              delete this.subs[sub.id];
+              // console.log('this.subs: '+ JSON.stringify(this.subs));
+              if(!!sub.callback && !!sub.callback.reject) 
+                sub.callback.reject(new Error('timeout'));
+          }
+        })
+      }
+      this.recv_life--;
+      if (this.recv_life == 0) {
+        console.error(this.url + " connection is dead, terminating ws");
+        this.close();
+        // clearInterval(this.keepalive_timer);
+        // this.keepalive_timer = undefined;
+        return;
       }
     }, 5000);
     this.current_reject = null;
@@ -153,7 +166,10 @@ class ChainWebSocket {
     ) {
       // Store callback in subs map
       this.subs[this.cbId] = {
-        callback: params[2][0]
+        id: this.cbId,
+        callback: params[2][0],
+        method,
+        timestamp: new Date().getTime()
       };
 
       // Replace callback with the callback id
@@ -216,8 +232,12 @@ class ChainWebSocket {
       callback = this.cbs[response.id];
       this.responseCbId = response.id;
     } else {
-      if(!this.subs[response.id])
-      callback = this.subs[response.id].callback;
+      if(this.subs[response.id]){
+        callback = this.subs[response.id].callback;
+        if(['broadcast_transaction_with_callback'].includes(this.subs[response.id].method)){
+          delete this.subs[response.id];
+        }
+      }
     }
 
     if (callback && !sub) {
@@ -233,9 +253,17 @@ class ChainWebSocket {
         delete this.unsub[response.id];
       }
     } else if (callback && sub) {
-      callback(response.params[1]);
+      if(callback.resolve)
+        callback.resolve(response.params[1]);
+      else
+        callback(response.params[1]);
     } else {
       console.log("Warning: unknown websocket response: ", response);
+    }
+    if (SOCKET_DEBUG){
+      console.log("[ChainWebSocket] <---- cbs ----<", JSON.stringify(this.cbs));
+      console.log("[ChainWebSocket] <---- subs ----<", JSON.stringify(this.subs));
+      console.log("[ChainWebSocket] <---- unsub ----<", JSON.stringify(this.unsub));
     }
   };
 
