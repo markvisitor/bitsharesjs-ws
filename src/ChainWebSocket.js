@@ -86,11 +86,14 @@ class ChainWebSocket {
         Object.values(this.subs).forEach( sub => {
           if(sub && ['broadcast_transaction_with_callback'].includes(sub.method) 
             && (now - sub.timestamp) >  1 * 60 * 1000){
-              console.log(`Warning: subs[${sub.id}] transaction timeout`);
+              // console.log(`Warning: subs[${sub.id}] transaction timeout`);
               delete this.subs[sub.id];
               // console.log('this.subs: '+ JSON.stringify(this.subs));
-              if(!!sub.callback && !!sub.callback.reject) 
-                sub.callback.reject(new Error('timeout'));
+              if(!!sub.callback && !!sub.callback.reject) {
+                const error = new Error('Timeout Error');
+                error.stack = `Timeout Error: Transaction[${sub.id}] did not receive a result notification after ${(now - sub.timestamp)}ms`
+                sub.callback.reject(error);
+              }
           }
         })
       }
@@ -171,7 +174,9 @@ class ChainWebSocket {
         method,
         timestamp: new Date().getTime()
       };
-
+      if(['broadcast_transaction_with_callback'].includes(method)){
+        // console.log(`call sub[${this.cbId}]: `+ JSON.stringify(this.subs[this.cbId]));
+      }
       // Replace callback with the callback id
       params[2][0] = this.cbId;
     }
@@ -235,6 +240,7 @@ class ChainWebSocket {
       if(this.subs[response.id]){
         callback = this.subs[response.id].callback;
         if(['broadcast_transaction_with_callback'].includes(this.subs[response.id].method)){
+          // console.log(`listener sub[${response.id}]: `+ JSON.stringify(this.subs[response.id]));
           delete this.subs[response.id];
         }
       }
