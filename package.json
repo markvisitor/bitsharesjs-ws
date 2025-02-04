@@ -9,7 +9,7 @@
     "test": "BABEL_ENV=test mocha --require @babel/register --recursive",
     "test:watch": "yarn test -- --watch",
     "test:connection": "BABEL_ENV=test mocha --require @babel/register ./test/Connection --watch",
-    "test:api": "BABEL_ENV=test mocha --require @babel/register ./test/Api --watch",
+    "test:api": "mocha --require @babel/register ./test/Api --watch",
     "test:manager": "BABEL_ENV=test mocha --require @babel/register ./test/Manager --watch",
     "pretest:browser": "NODE_ENV=dev browserify test/*.js -o browser-test/browser-test.js -t [ babelify ]",
     "test:browser": "BABEL_ENV=test http-server ./browser-test",
@@ -36,7 +36,7 @@
     "url": "https://github.com/bitshares/bitsharesjs-ws/issues"
   },
   "engines": {
-    "node": ">=16.13.x",
+    "node": ">=14.15.4",
     "npm": ">=8.2.x",
     "yarn": ">=1.22.x"
   },
