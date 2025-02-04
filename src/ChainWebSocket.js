@@ -1,6 +1,6 @@
 import WebSocket from "isomorphic-ws";
 
-const SOCKET_DEBUG = false;
+let SOCKET_DEBUG = false;
 const MAX_SEND_LIFE = 5;
 const MAX_RECV_LIFE = MAX_SEND_LIFE * 2;
 
@@ -299,6 +299,10 @@ class ChainWebSocket {
 
       if (this.ws.readyState === 3) res();
     });
+
+  debugModel = bool => {
+    SOCKET_DEBUG = bool;
+  } ;
 }
 
 export default ChainWebSocket;

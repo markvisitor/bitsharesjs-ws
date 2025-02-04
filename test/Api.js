@@ -1,8 +1,8 @@
 import assert from "assert";
-import {Apis} from "../lib";
+import {Apis} from "../src";
 
 var coreAsset;
-var default_api = "wss://eu.nodes.bitshares.ws";
+var default_api = "ws://192.168.30.100:28080";
 
 describe("Api", () => {
 
@@ -21,8 +21,30 @@ describe("Api", () => {
             })
         });
 
+        it("Set subscribe callback2", async function() {
+            this.timeout(Number.MAX_VALUE);
+            Apis.instance().db_api().exec( "set_subscribe_callback", [ callback, false ] ).then(function(sub) {
+                if (sub === null) {
+                    console.log("subscribe success");
+                } else {
+                    new Error("Expected sub to equal null");
+                }
+            });
+
+            function callback(object) {
+                console.log("result: " + JSON.stringify(object));
+            }
+        
+            function sleep(milliseconds) {
+                return new Promise(resolve => setTimeout(resolve, milliseconds));
+              }
+
+              await sleep(2000000); // 等待 2 秒 
+
+        });
+
         it("Set subscribe callback", function() {
-            this.timeout(10000);
+            this.timeout(Number.MAX_VALUE);
             return new Promise( function(resolve, reject) {
                 Apis.instance().db_api().exec( "set_subscribe_callback", [ callback, true ] ).then(function(sub) {
                     if (sub === null) {
@@ -376,6 +398,38 @@ describe("Api", () => {
                         resolve();
                     } else {
                         reject(new Error("Get groups error"));
+                    }
+                }).catch(err => {
+                    reject(err);
+                })
+            })
+        });
+    });
+
+    describe.only("Asset API", function() {
+
+        // Connect once for all tests
+        before(function() {
+            return Apis.instance(cs, true, 5000, {enableAsset: true}).init_promise.then(function (result) {
+                coreAsset = result[0].network.core_asset;
+                 Apis.debugModel(true);
+                 console.log('debugModel: ' +  Apis.debug);
+            });
+        });
+
+        after(function() {
+            return new Promise(function(res) {
+                Apis.close().then(res);
+            })
+        });
+
+        it("Get get_asset_holders", function() {
+            return new Promise( function(resolve, reject) {
+                Apis.instance().asset_api().exec( "get_asset_holders", ["1.3.0", null, 100]).then(function(objects) {
+                    if (objects!=null) {
+                        resolve();
+                    } else {
+                        reject(new Error("Get asset holders error"));
                     }
                 }).catch(err => {
                     reject(err);

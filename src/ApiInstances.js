@@ -123,6 +123,8 @@ const newApis = () => ({
           Apis._orders = new GrapheneApi(Apis.ws_rpc, "orders");
         if (optionalApis.enableCrypto)
           Apis._crypt = new GrapheneApi(Apis.ws_rpc, "crypto");
+        if (optionalApis.enableAsset)
+          Apis._asset = new GrapheneApi(Apis.ws_rpc, "asset"); 
         var db_promise = Apis._db.init().then(() => {
           //https://github.com/cryptonomex/graphene/wiki/chain-locked-tx
           return Apis._db.exec("get_chain_id", []).then(_chain_id => {
@@ -141,6 +143,7 @@ const newApis = () => ({
             Apis._hist.init();
             if (optionalApis.enableOrders) Apis._orders.init();
             if (optionalApis.enableCrypto) Apis._crypt.init();
+            if (optionalApis.enableAsset) Apis._asset.init();
           });
         };
         Apis.ws_rpc.on_close = () => {
@@ -152,6 +155,7 @@ const newApis = () => ({
 
         if (optionalApis.enableOrders) initPromises.push(Apis._orders.init());
         if (optionalApis.enableCrypto) initPromises.push(Apis._crypt.init());
+        if (optionalApis.enableAsset) initPromises.push(Apis._asset.init());
         return Promise.all(initPromises);
       })
       .catch(err => {
@@ -176,5 +180,14 @@ const newApis = () => ({
   history_api: () => Apis._hist,
   crypto_api: () => Apis._crypt,
   orders_api: () => Apis._orders,
-  setRpcConnectionStatusCallback: callback => (Apis.statusCb = callback)
+  asset_api: () => Apis._asset,
+  setRpcConnectionStatusCallback: callback => (Apis.statusCb = callback),
 });
+
+
+export let debug = undefined;
+
+export const debugModel = value => {
+  debug = value;
+  if(Apis.ws_rpc) Apis.ws_rpc.debugModel(value);
+};
